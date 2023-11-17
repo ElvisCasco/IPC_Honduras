@@ -33,7 +33,8 @@ eval(Meta.parse(expr))=#
 #using CategoricalArrays,Chain,Conda,CSV,DataFrames,Dates,FileIO,HTTP
 #using ImageShow,LaTeXStrings,Metrics,Plots,Plotly,PrettyTables,PyCall
 #using Statistics,StatsBase,StatsPlots,StateSpaceModels,XLSX;
-using CSV,DataFrames,Dates,FileIO,GLM,Plots,PrettyTables,PyCall
+using CSV,DataFrames,Dates,FileIO,GLM
+using Plots,PrettyTables,PyCall,StateSpaceModels
 # Pkg.add(PackageSpec(name="PyCall", rev="master"))
 # Pkg.build("PyCall")
 
@@ -123,12 +124,12 @@ df_cpi_grupos.Fechas = Base.collect(
 
 # Guardar en archivo y leer en formato correcto
 CSV.write(
-	wd * "/Data/Base/data_rubros_web.csv", 
+	wd * "/Results/data_rubros_web.csv", 
 	delim = ';',
 	df_cpi_grupos);
 df_cpi_grupos = CSV.read(
 	#dir * "./Data/Base/data.csv",
-	wd * "/Data/Base/data_rubros_web.csv", 
+	wd * "/Results/data_rubros_web.csv", 
 	DataFrames.DataFrame);
 ```
 
@@ -216,27 +217,28 @@ df_cpi_regiones.columns = [
     "Occidental",
     "IPC"];
 
-# # To DataFrame
+# To DataFrame
 df_cpi_regiones = DataFrames.DataFrame([col => Base.collect(df_cpi_regiones[col]) for col in df_cpi_regiones.columns])
 df_cpi_regiones = df_cpi_regiones[2:end,:]
 
 # # Drop rows containing "PROMEDIO"
 df_cpi_regiones = DataFrames.filter(
-	row -> row.Fechas != "PROMEDIO", df_cpi_regiones)
+	row -> row.Fechas != "Promedio", df_cpi_regiones)
 
-# # Add months as date
+# Add months as date
 df_cpi_regiones.Fechas = Base.collect(Dates.Date(1991,1,1):Dates.Month(1):Dates.Date(1991,1,1)+Dates.Month(size(df_cpi_regiones)[1]-1))
 # df_cpi_regiones = df_cpi_regiones[:,vcat(size(df_cpi_regiones)[2],collect(2:size(df_cpi_regiones)[2]-1))]
 
 # Guardar en archivo y leer en formato correcto
 CSV.write(
-	wd * "/Data/Base/data_regiones_web.csv", 
+	wd * "/Results/data_regiones_web.csv", 
 	delim = ';',
 	df_cpi_regiones);
 df_cpi_regiones = CSV.read(
 	#dir * "./Data/Base/data.csv",
-	wd * "/Data/Base/data_regiones_web.csv", 
+	wd * "/Results/data_regiones_web.csv", 
 	DataFrames.DataFrame);
+df_cpi_regiones
 ```
 
 ```{julia}
@@ -284,21 +286,58 @@ DataFrames.rename!(
 formato_tabla(data[end-20:end,:])
 ```
 
+# Pronóstico
+
+## Seasonal ARIMA
+
+### Model
 
 ```{julia}
+log_ipc = log.(data.IPC)
+model = StateSpaceModels.SARIMA(
+    log_ipc; 
+    order = (0, 1, 1), seasonal_order = (0, 1, 1, 12))
+StateSpaceModels.fit!(model)
+StateSpaceModels.print_results(model)
+```
 
+### Forecast
+
+```{julia}
+forec = StateSpaceModels.forecast(model, 24)
+Plots.plot(model, forec; legend = :topleft, label = "")
+```
+
+## Auto ARIMA
+
+### Model
+
+```{julia}
+log_ipc = log.(data.IPC)
+seas = 12
+steps_ahead = 12
+model_auto_arima,forec_auto_arima,df_auto_arima = auto_arima(
+	log_ipc, 
+	seas, 
+	steps_ahead);
+```
+
+### Forecast
+
+```{julia}
+Plots.plot(
+	model_auto_arima, 
+	forec_auto_arima; 
+	legend = :topleft, label = "")
 ```
 
 
 
 ```{julia}
-
-```
-
-
-
-```{julia}
-
+ipc_for = data[:,[:Fechas,:IPC]]
+fechas_last = data.Fechas[end]
+#=fechas_for = Base.collect(
+	Dates.Date(1991,1,1):Dates.Month(1):Dates.Date(1991,1,1)+Dates.Month(size(df_cpi_grupos)[1]-1))=#
 ```
 
 
