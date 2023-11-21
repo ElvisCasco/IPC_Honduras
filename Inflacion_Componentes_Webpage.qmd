@@ -286,64 +286,31 @@ DataFrames.rename!(
 formato_tabla(data[end-20:end,:])
 ```
 
-# Pronóstico
+# Pronóstico, Rubros
 
-## Seasonal ARIMA
-
-### Model
+## Modelos univariados
 
 ```{julia}
-log_ipc = log.(data.IPC)
-model = StateSpaceModels.SARIMA(
-    log_ipc; 
-    order = (0, 1, 1), seasonal_order = (0, 1, 1, 12))
-StateSpaceModels.fit!(model)
-StateSpaceModels.print_results(model)
-```
-
-### Forecast
-
-```{julia}
-forec = StateSpaceModels.forecast(model, 24)
-Plots.plot(model, forec; legend = :topleft, label = "")
-```
-
-## Auto ARIMA
-
-### Model
-
-```{julia}
-log_ipc = log.(data.IPC)
-seas = 12
-steps_ahead = 12
-model_auto_arima,forec_auto_arima,df_auto_arima = auto_arima(
-	log_ipc, 
-	seas, 
-	steps_ahead);
-```
-
-### Forecast
-
-```{julia}
-Plots.plot(
-	model_auto_arima, 
-	forec_auto_arima; 
-	legend = :topleft, label = "")
-```
-
-
-
-```{julia}
-ipc_for = data[:,[:Fechas,:IPC]]
-fechas_last = data.Fechas[end]
-#=fechas_for = Base.collect(
-	Dates.Date(1991,1,1):Dates.Month(1):Dates.Date(1991,1,1)+Dates.Month(size(df_cpi_grupos)[1]-1))=#
-```
-
-
-
-```{julia}
-
+Threads.@threads for i in 1:size(df_cpi_grupos)[2]-1
+	x = Vector(df_cpi_grupos[!,i+1])
+	seas = 12
+	steps_ahead = 12
+	Fechas = Base.collect(
+		df_cpi_grupos[end,1] + Dates.Month(1):
+		Dates.Month(1):
+		df_cpi_grupos[end,1] + Dates.Month(steps_ahead))
+	df = univariate_models(x, seas, steps_ahead)
+	df = hcat(Fechas,df)
+	DataFrames.rename!(
+		df, 
+		Base.names(df) .=> 
+		vcat("Fechas",DataFrames.names(df)[2:end]));
+	CSV.write(
+		wd * "/Results/" * names(df_cpi_grupos)[i+1] * ".csv", 
+    	delim = ";",
+		df)
+	return df
+end
 ```
 
 
