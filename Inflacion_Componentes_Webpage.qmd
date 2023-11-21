@@ -33,7 +33,7 @@ eval(Meta.parse(expr))=#
 #using CategoricalArrays,Chain,Conda,CSV,DataFrames,Dates,FileIO,HTTP
 #using ImageShow,LaTeXStrings,Metrics,Plots,Plotly,PrettyTables,PyCall
 #using Statistics,StatsBase,StatsPlots,StateSpaceModels,XLSX;
-using CSV,DataFrames,Dates,FileIO,GLM
+using Conda,CSV,DataFrames,Dates,FileIO,GLM
 using Plots,PrettyTables,PyCall,StateSpaceModels
 # Pkg.add(PackageSpec(name="PyCall", rev="master"))
 # Pkg.build("PyCall")
@@ -74,9 +74,9 @@ El procedimiento se realiza mediante funciones programadas, por lo que los cálc
 ```{julia}
 # Conda.pip("install", "openpyxl")
 #import Conda
-#Conda.add("openpyxl")
-#using PyCall
-#PyCall.@pyimport openpyxl
+Conda.add("openpyxl")
+using PyCall
+PyCall.@pyimport openpyxl
 pd = PyCall.pyimport("pandas");
 ```
 
