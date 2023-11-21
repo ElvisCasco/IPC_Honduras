@@ -73,10 +73,10 @@ El procedimiento se realiza mediante funciones programadas, por lo que los cálc
 
 ```{julia}
 # Conda.pip("install", "openpyxl")
-#import Conda
-Conda.add("openpyxl")
-using PyCall
-PyCall.@pyimport openpyxl
+# import Conda
+# Conda.add("openpyxl")
+# using PyCall
+# PyCall.@pyimport openpyxl
 pd = PyCall.pyimport("pandas");
 ```
 
