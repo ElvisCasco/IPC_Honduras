@@ -238,7 +238,6 @@ df_cpi_regiones = CSV.read(
 	#dir * "./Data/Base/data.csv",
 	wd * "/Results/data_regiones_web.csv", 
 	DataFrames.DataFrame);
-df_cpi_regiones
 ```
 
 ```{julia}
