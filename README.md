@@ -4,6 +4,10 @@ Se presenta una forma de descargar los datos del Índice de Precios al Consumido
 
 Previo a su utilización, se debe:
 
-1. Descargar e instalar [Julia](https://julialang.org/downloads/)
-2. Descargar e instalar [Python](https://www.python.org/downloads/)
-3. En Python, installar las siguientes librerías: "pandas" y "openpyxl"
+1. Descargar e instalar [Julia](https://julialang.org/downloads/).
+2. Descargar e instalar [Python](https://www.python.org/downloads/).
+3. En Python, installar las siguientes librerías: "pandas" y "openpyxl".
+4. En Julia, instalar las siguientes librerías: Conda,CSV,DataFrames,Dates,FileIO,GLM,Plots,PrettyTables,PyCall,StateSpaceModels.
+5. Abrir el archivo "Inflacion_Componentes_Webpage.qmd" y ejecutar el proceso.
+
+Los resultados en formato ".csv" se guardan en la carpeta "Results".
