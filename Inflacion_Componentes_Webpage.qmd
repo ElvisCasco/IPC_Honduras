@@ -33,8 +33,8 @@ eval(Meta.parse(expr))=#
 #using CategoricalArrays,Chain,Conda,CSV,DataFrames,Dates,FileIO,HTTP
 #using ImageShow,LaTeXStrings,Metrics,Plots,Plotly,PrettyTables,PyCall
 #using Statistics,StatsBase,StatsPlots,StateSpaceModels,XLSX;
-using Conda,CSV,DataFrames,Dates,FileIO,GLM
-using Plots,PrettyTables,PyCall,StateSpaceModels
+using Chain,Conda,CSV,DataFrames,Dates,FileIO,GLM
+using Plots,PrettyTables,PyCall,StateSpaceModels,StatsPlots
 # Pkg.add(PackageSpec(name="PyCall", rev="master"))
 # Pkg.build("PyCall")
 
@@ -75,8 +75,8 @@ El procedimiento se realiza mediante funciones programadas, por lo que los cálc
 # Conda.pip("install", "openpyxl")
 # import Conda
 # Conda.add("openpyxl")
-# using PyCall
-# PyCall.@pyimport openpyxl
+#using PyCall
+#PyCall.@pyimport openpyxl
 pd = PyCall.pyimport("pandas");
 ```
 
@@ -189,7 +189,74 @@ formato_tabla(data[end-20:end,1:6])
 formato_tabla(data[end-20:end,7:end])
 ```
 
-## Página Web, Regiones
+
+# Pronóstico, Rubros
+
+## Modelos univariados
+
+```{julia}
+df_for = DataFrame()
+Threads.@threads for i in 1:size(df_cpi_grupos)[2]-1
+# i = 1
+	x = Vector(df_cpi_grupos[!,i+1])
+	seas = 12
+	steps_ahead = 12 # Número de meses a pronosticar
+	Fechas = Base.collect(
+		df_cpi_grupos[end,1] + Dates.Month(1):
+		Dates.Month(1):
+		df_cpi_grupos[end,1] + Dates.Month(steps_ahead))
+	df = univariate_models(x, seas, steps_ahead)
+	df = hcat(Fechas,df)
+	DataFrames.rename!(
+		df, 
+		Base.names(df) .=> 
+		vcat("Fechas",DataFrames.names(df)[2:end]));
+	df = DataFrames.stack(df,2:size(df)[2])
+	df = @chain df begin
+		DataFrames.rename(
+		:variable => :Serie,
+		:value => :Indice)
+	end
+	df.Variable .= names(df_cpi_grupos)[i+1]
+	append!(df_for,df)
+	return df_for
+end
+```
+
+
+```{julia}
+df_cpi = DataFrames.stack(df_cpi_grupos,2:size(df_cpi_grupos)[2])
+df_cpi = @chain df_cpi begin
+	DataFrames.rename(
+		:variable => :Variable,
+		:value => :Indice)
+end
+df_cpi.Serie .= "Observada"
+df_all = vcat(df_for,df_cpi)
+CSV.write(
+	wd * "/Results/Pronostico_Grupos.csv", 
+	delim = ";",
+	df_all)
+```
+
+Graficar pronósticos de una serie:
+
+```{julia}
+plotly()
+df_plot = DataFrames.filter(
+	:Variable => ==("Recreación y Cultura"),
+	df_all)
+df_plot = DataFrames.filter(
+	:Fechas => >=(Dates.Date.("2022-01-01")),
+	df_plot)
+@df df_plot Plots.plot(
+	:Fechas, :Indice, 
+	group = :Serie, 
+	legend=:topleft)
+```
+
+
+# Página Web, Regiones
 
 ```{julia}
 url = "https://www.bch.hn/estadisticos/GIE/LIBSerie%20IPC%20Region/Serie%20Mensual%20y%20Promedio%20Anual%20del%20%C3%8Dndice%20de%20Precios%20al%20Consumidor%20por%20Regi%C3%B3n.xlsx"
@@ -283,44 +350,6 @@ DataFrames.rename!(
 	Base.names(data)[1] .=> 
 	"Fechas");
 formato_tabla(data[end-20:end,:])
-```
-
-# Pronóstico, Rubros
-
-## Modelos univariados
-
-```{julia}
-Threads.@threads for i in 1:size(df_cpi_grupos)[2]-1
-	x = Vector(df_cpi_grupos[!,i+1])
-	seas = 12
-	steps_ahead = 12
-	Fechas = Base.collect(
-		df_cpi_grupos[end,1] + Dates.Month(1):
-		Dates.Month(1):
-		df_cpi_grupos[end,1] + Dates.Month(steps_ahead))
-	df = univariate_models(x, seas, steps_ahead)
-	df = hcat(Fechas,df)
-	DataFrames.rename!(
-		df, 
-		Base.names(df) .=> 
-		vcat("Fechas",DataFrames.names(df)[2:end]));
-	CSV.write(
-		wd * "/Results/" * names(df_cpi_grupos)[i+1] * ".csv", 
-    	delim = ";",
-		df)
-	return df
-end
-```
-
-
-```{julia}
-
-```
-
-
-
-```{julia}
-
 ```
 
 
