@@ -215,7 +215,6 @@ function univariate_models(x, seas, steps_ahead)
 		Base.hcat(forec_seasonal_naive.expected_value...)', :auto)
 	DataFrames.rename!(df_seasonal_naive, [:seasonal_naive])
 
-	#=
 	## Automatic Exponential Smoothing
 	model_auto_ets = StateSpaceModels.auto_ets(
 		x; 
@@ -225,7 +224,6 @@ function univariate_models(x, seas, steps_ahead)
 	df_auto_ets = DataFrames.DataFrame(
 		Base.hcat(forec_auto_ets.expected_value...)', :auto)
 	DataFrames.rename!(df_auto_ets, [:auto_ets])
-	=#
 
 	## Automatic ARIMA
 	model_auto_arima = StateSpaceModels.auto_arima(
@@ -313,10 +311,10 @@ function univariate_models(x, seas, steps_ahead)
 		df_auto_arima,
 		df_uc, 
 		df_ets, 
-		#df_auto_ets, 
+		df_auto_ets, 
 		#df_ll_cycle,
 		df_ll_trend, 
-		df_exper_seas_naive,
+		# df_exper_seas_naive,
 		 df_struc_ss#, 
 		#df_ll, df_ll_cycle,
 		#df_seasonal_naive, df_naive 

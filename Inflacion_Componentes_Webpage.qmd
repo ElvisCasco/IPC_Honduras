@@ -27,6 +27,8 @@ eval(Meta.parse(expr))=#
 ```
 
 ```{julia}
+# import Pkg
+# Pkg.instantiate()
 #=using PlutoUI; PlutoUI.TableOfContents(
     title = "Pronóstico de Inflación por Componentes", 
     depth = 5)=#
@@ -242,13 +244,17 @@ CSV.write(
 Graficar pronósticos de una serie:
 
 ```{julia}
-plotly()
+Plots.gr()
 df_plot = DataFrames.filter(
-	:Variable => ==("Recreación y Cultura"),
+	:Variable => ==("IPC"),
 	df_all)
 df_plot = DataFrames.filter(
-	:Fechas => >=(Dates.Date.("2022-01-01")),
+	:Fechas => >=(Dates.Date.("2023-01-01")),
 	df_plot)
+formato_tabla(
+	DataFrames.sort(
+		DataFrames.unstack(df_plot,:Serie,:Indice),
+		:Fechas))
 @df df_plot Plots.plot(
 	:Fechas, :Indice, 
 	group = :Serie, 
