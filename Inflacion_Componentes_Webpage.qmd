@@ -12,23 +12,23 @@ format:
 #     warnings: false
 keep-ipynb: true
 lang: es
-jupyter: julia-1.9
+jupyter: julia-1.10
 ---
 
 ```{julia}
-#=pkgs = [
-	"CategoricalArrays","Chain","Conda","CSV","DataFrames","Dates",
-	"FileIO","HTTP","ImageShow","LaTeXStrings","Metrics","Plots",
-	"Plotly","PrettyTables","PyCall","Statistics","StatsBase",
-	"StatsPlots","StateSpaceModels","XLSX"
-	];
-expr = "using " * join(pkgs, ", ")
-eval(Meta.parse(expr))=#
+# pkgs = [
+# 	"CategoricalArrays","Chain","Conda","CSV","DataFrames","Dates",
+# 	"FileIO","HTTP","ImageShow","LaTeXStrings","Metrics","Plots",
+# 	"Plotly","PrettyTables","PyCall","Statistics","StatsBase",
+# 	"StatsPlots","StateSpaceModels","XLSX"
+# 	];
+# expr = "using " * join(pkgs, ", ")
+# eval(Meta.parse(expr))
+# import Pkg
+# Pkg.add(pkgs)
 ```
 
 ```{julia}
-# import Pkg
-# Pkg.instantiate()
 #=using PlutoUI; PlutoUI.TableOfContents(
     title = "Pronóstico de Inflación por Componentes", 
     depth = 5)=#
@@ -37,6 +37,7 @@ eval(Meta.parse(expr))=#
 #using Statistics,StatsBase,StatsPlots,StateSpaceModels,XLSX;
 using Chain,Conda,CSV,DataFrames,Dates,FileIO,GLM
 using Plots,PrettyTables,PyCall,StateSpaceModels,StatsPlots
+Plots.plotly()
 # Pkg.add(PackageSpec(name="PyCall", rev="master"))
 # Pkg.build("PyCall")
 
@@ -75,8 +76,9 @@ El procedimiento se realiza mediante funciones programadas, por lo que los cálc
 
 ```{julia}
 # Conda.pip("install", "openpyxl")
-# import Conda
+import Conda
 # Conda.add("openpyxl")
+# Conda.add("pandas")
 #using PyCall
 #PyCall.@pyimport openpyxl
 pd = PyCall.pyimport("pandas");
@@ -199,7 +201,7 @@ formato_tabla(data[end-20:end,7:end])
 ```{julia}
 df_for = DataFrame()
 Threads.@threads for i in 1:size(df_cpi_grupos)[2]-1
-# i = 1
+	# i = 1
 	x = Vector(df_cpi_grupos[!,i+1])
 	seas = 12
 	steps_ahead = 12 # Número de meses a pronosticar
@@ -208,6 +210,7 @@ Threads.@threads for i in 1:size(df_cpi_grupos)[2]-1
 		Dates.Month(1):
 		df_cpi_grupos[end,1] + Dates.Month(steps_ahead))
 	df = univariate_models(x, seas, steps_ahead)
+
 	df = hcat(Fechas,df)
 	DataFrames.rename!(
 		df, 
@@ -223,6 +226,22 @@ Threads.@threads for i in 1:size(df_cpi_grupos)[2]-1
 	append!(df_for,df)
 	return df_for
 end
+df_for
+```
+
+
+```{julia}
+airp = CSV.File(StateSpaceModels.AIR_PASSENGERS) |> DataFrame
+log_air_passengers = log.(airp.passengers)
+steps_ahead = 30
+model = auto_ets(log_air_passengers; seasonal = 12)
+StateSpaceModels.fit!(
+		model; 
+		save_hyperparameter_distribution=false)
+forec_auto_ets = StateSpaceModels.forecast(model, steps_ahead)
+df_auto_ets = DataFrames.DataFrame(
+		Base.hcat(forec_auto_ets.expected_value...)', :auto)
+DataFrames.rename!(df_auto_ets, [:auto_ets])
 ```
 
 
@@ -244,17 +263,13 @@ CSV.write(
 Graficar pronósticos de una serie:
 
 ```{julia}
-Plots.gr()
+Plots.plotly()
 df_plot = DataFrames.filter(
-	:Variable => ==("IPC"),
+	:Variable => ==("Alimentos y Bebidas no Alcohólicas"),
 	df_all)
 df_plot = DataFrames.filter(
-	:Fechas => >=(Dates.Date.("2023-01-01")),
+	:Fechas => >=(Dates.Date.("2022-01-01")),
 	df_plot)
-formato_tabla(
-	DataFrames.sort(
-		DataFrames.unstack(df_plot,:Serie,:Indice),
-		:Fechas))
 @df df_plot Plots.plot(
 	:Fechas, :Indice, 
 	group = :Serie, 
@@ -265,97 +280,97 @@ formato_tabla(
 # Página Web, Regiones
 
 ```{julia}
-url = "https://www.bch.hn/estadisticos/GIE/LIBSerie%20IPC%20Region/Serie%20Mensual%20y%20Promedio%20Anual%20del%20%C3%8Dndice%20de%20Precios%20al%20Consumidor%20por%20Regi%C3%B3n.xlsx"
+# url = "https://www.bch.hn/estadisticos/GIE/LIBSerie%20IPC%20Region/Serie%20Mensual%20y%20Promedio%20Anual%20del%20%C3%8Dndice%20de%20Precios%20al%20Consumidor%20por%20Regi%C3%B3n.xlsx"
 
-# Read Excel data
-df_cpi_regiones = pd.read_excel(url)
+# # Read Excel data
+# df_cpi_regiones = pd.read_excel(url)
 
-# Drop columns and rows with missing values
-df_cpi_regiones = df_cpi_regiones.dropna(axis=1, thresh=3)
-df_cpi_regiones = df_cpi_regiones.dropna(axis=0, thresh=3)
-df_cpi_regiones = df_cpi_regiones.dropna(axis=1)
+# # Drop columns and rows with missing values
+# df_cpi_regiones = df_cpi_regiones.dropna(axis=1, thresh=3)
+# df_cpi_regiones = df_cpi_regiones.dropna(axis=0, thresh=3)
+# df_cpi_regiones = df_cpi_regiones.dropna(axis=1)
 
-# Drop first row (name of variables in Spanish)
-df_cpi_regiones = df_cpi_regiones.drop(df_cpi_regiones.index[0])
+# # Drop first row (name of variables in Spanish)
+# df_cpi_regiones = df_cpi_regiones.drop(df_cpi_regiones.index[0])
 
-# Rename columns
-df_cpi_regiones.columns = [
-    "Fechas",
-    "Central_Metropolitana",
-    "Resto_Central",
-    "Norte_Metropolitana",
-    "Resto_Norte",
-    "Sur",
-    "Oriental",
-    "Occidental",
-    "IPC"];
+# # Rename columns
+# df_cpi_regiones.columns = [
+#     "Fechas",
+#     "Central_Metropolitana",
+#     "Resto_Central",
+#     "Norte_Metropolitana",
+#     "Resto_Norte",
+#     "Sur",
+#     "Oriental",
+#     "Occidental",
+#     "IPC"];
 
-# To DataFrame
-df_cpi_regiones = DataFrames.DataFrame([col => Base.collect(df_cpi_regiones[col]) for col in df_cpi_regiones.columns])
-df_cpi_regiones = df_cpi_regiones[2:end,:]
+# # To DataFrame
+# df_cpi_regiones = DataFrames.DataFrame([col => Base.collect(df_cpi_regiones[col]) for col in df_cpi_regiones.columns])
+# df_cpi_regiones = df_cpi_regiones[2:end,:]
 
-# # Drop rows containing "PROMEDIO"
-df_cpi_regiones = DataFrames.filter(
-	row -> row.Fechas != "Promedio", df_cpi_regiones)
+# # # Drop rows containing "PROMEDIO"
+# df_cpi_regiones = DataFrames.filter(
+# 	row -> row.Fechas != "Promedio", df_cpi_regiones)
 
-# Add months as date
-df_cpi_regiones.Fechas = Base.collect(Dates.Date(1991,1,1):Dates.Month(1):Dates.Date(1991,1,1)+Dates.Month(size(df_cpi_regiones)[1]-1))
-# df_cpi_regiones = df_cpi_regiones[:,vcat(size(df_cpi_regiones)[2],collect(2:size(df_cpi_regiones)[2]-1))]
+# # Add months as date
+# df_cpi_regiones.Fechas = Base.collect(Dates.Date(1991,1,1):Dates.Month(1):Dates.Date(1991,1,1)+Dates.Month(size(df_cpi_regiones)[1]-1))
+# # df_cpi_regiones = df_cpi_regiones[:,vcat(size(df_cpi_regiones)[2],collect(2:size(df_cpi_regiones)[2]-1))]
 
-# Guardar en archivo y leer en formato correcto
-CSV.write(
-	wd * "/Results/data_regiones_web.csv", 
-	delim = ';',
-	df_cpi_regiones);
-df_cpi_regiones = CSV.read(
-	#dir * "./Data/Base/data.csv",
-	wd * "/Results/data_regiones_web.csv", 
-	DataFrames.DataFrame);
+# # Guardar en archivo y leer en formato correcto
+# CSV.write(
+# 	wd * "/Results/data_regiones_web.csv", 
+# 	delim = ';',
+# 	df_cpi_regiones);
+# df_cpi_regiones = CSV.read(
+# 	#dir * "./Data/Base/data.csv",
+# 	wd * "/Results/data_regiones_web.csv", 
+# 	DataFrames.DataFrame);
 ```
 
 ```{julia}
-tipo = "line";
-grupos2 = DataFrames.DataFrame(
-	No = 1:Base.size(df_cpi_regiones, 2)-1,
-	Nombre = DataFrames.names(df_cpi_regiones)[2:end]);
-nombrar = Base.Array(grupos2.Nombre);
-nombrar = string.(nombrar);
-j = 1#size(nombrar)[1] # 1:8
+# tipo = "line";
+# grupos2 = DataFrames.DataFrame(
+# 	No = 1:Base.size(df_cpi_regiones, 2)-1,
+# 	Nombre = DataFrames.names(df_cpi_regiones)[2:end]);
+# nombrar = Base.Array(grupos2.Nombre);
+# nombrar = string.(nombrar);
+# j = 1#size(nombrar)[1] # 1:8
 
-#dynamic_plot(df, nombrar[i], tipo)
-# static_plot(df_cpi_grupos, nombrar[j], tipo)
-df, col_name, plot_type = df_cpi_regiones, nombrar[j], tipo
-col_name = Symbol(col_name)
-plot_type = Symbol(plot_type)
-fig_002 = Plots.plot(
-    df.Fechas, 
-    df[:, col_name],
-    legend = false,
-    label = String(col_name),
-    title = String(col_name),)
-#=Plots.savefig(
-	fig_002,
-	wd * "/Figuras/fig_002.png")
-FileIO.load(wd * "/Figuras/fig_002.png")=#
+# #dynamic_plot(df, nombrar[i], tipo)
+# # static_plot(df_cpi_grupos, nombrar[j], tipo)
+# df, col_name, plot_type = df_cpi_regiones, nombrar[j], tipo
+# col_name = Symbol(col_name)
+# plot_type = Symbol(plot_type)
+# fig_002 = Plots.plot(
+#     df.Fechas, 
+#     df[:, col_name],
+#     legend = false,
+#     label = String(col_name),
+#     title = String(col_name),)
+# #=Plots.savefig(
+# 	fig_002,
+# 	wd * "/Figuras/fig_002.png")
+# FileIO.load(wd * "/Figuras/fig_002.png")=#
 ```
 
 También puede aplicarse una regresión lineal para estimar los pesos por región:
 
 ```{julia}
-data = copy(df_cpi_regiones[:,2:end])
-reg = GLM.lm(GLM.@formula(IPC ~  0 + Central_Metropolitana + Resto_Central + Norte_Metropolitana + Resto_Norte + Sur + Oriental + Occidental),data)
-w = coef(reg)
-data[:,:IPC_estim] = data[:,end]
-data[!,:IPC_estim] = 
-	data.Central_Metropolitana .* w[1] + data.Resto_Central .* w[2] + data.Norte_Metropolitana .* w[3] + 
-	data.Resto_Norte .* w[4] + data.Sur .* w[5] + data.Oriental .* w[6] +
-	data.Occidental .* w[7]
-data = hcat(df_cpi_regiones[:,1],data)
-DataFrames.rename!(
-	data, 
-	Base.names(data)[1] .=> 
-	"Fechas");
-formato_tabla(data[end-20:end,:])
+# data = copy(df_cpi_regiones[:,2:end])
+# reg = GLM.lm(GLM.@formula(IPC ~  0 + Central_Metropolitana + Resto_Central + Norte_Metropolitana + Resto_Norte + Sur + Oriental + Occidental),data)
+# w = coef(reg)
+# data[:,:IPC_estim] = data[:,end]
+# data[!,:IPC_estim] = 
+# 	data.Central_Metropolitana .* w[1] + data.Resto_Central .* w[2] + data.Norte_Metropolitana .* w[3] + 
+# 	data.Resto_Norte .* w[4] + data.Sur .* w[5] + data.Oriental .* w[6] +
+# 	data.Occidental .* w[7]
+# data = hcat(df_cpi_regiones[:,1],data)
+# DataFrames.rename!(
+# 	data, 
+# 	Base.names(data)[1] .=> 
+# 	"Fechas");
+# formato_tabla(data[end-20:end,:])
 ```
 
 
