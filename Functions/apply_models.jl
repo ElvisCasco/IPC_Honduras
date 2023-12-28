@@ -1,4 +1,4 @@
-function sarima(x, seas, steps_ahead)
+function sarima_df(x, seas, steps_ahead)
 	## Logarithms
 	#x = Base.log.(x)
 	
@@ -19,7 +19,7 @@ function sarima(x, seas, steps_ahead)
 	return df_sarima
 end
 
-function uc(x, seas, steps_ahead)
+function uc_df(x, seas, steps_ahead)
 	## Logarithms
 	#x = Base.log.(x)
 	
@@ -38,7 +38,7 @@ function uc(x, seas, steps_ahead)
 	return df_uc
 end
 
-function ets(x, seas, steps_ahead)
+function ets_df(x, seas, steps_ahead)
 	## Logarithms
 	#x = Base.log.(x)
 	
@@ -56,7 +56,25 @@ function ets(x, seas, steps_ahead)
 	return df_ets
 end
 
-function seas_naive(x, seas, steps_ahead)
+function auto_ets_df(x, seas, steps_ahead)
+	## Logarithms
+	#x = Base.log.(x)
+	
+	## Auto Exponential Smoothing
+	model_auto_ets = StateSpaceModels.auto_ets(
+		x; 
+		seasonal = seas)
+	StateSpaceModels.fit!(
+		model_auto_ets; 
+		save_hyperparameter_distribution=false)
+	forec_auto_ets = StateSpaceModels.forecast(model_auto_ets, steps_ahead)
+	df_auto_ets = DataFrames.DataFrame(
+		Base.hcat(forec_auto_ets.expected_value...)', :auto)
+	DataFrames.rename!(df_auto_ets, [:auto_ets])
+	return df_auto_ets
+end
+
+function seas_naive_df(x, seas, steps_ahead)
 	## Logarithms
 	#x = Base.log.(x)
 	
@@ -74,7 +92,7 @@ function seas_naive(x, seas, steps_ahead)
 	return df_seas_naive
 end
 
-function auto_arima(x, seas, steps_ahead)
+function auto_arima_df(x, seas, steps_ahead)
 	## Logarithms
 	#x = Base.log.(x)
 	
@@ -92,7 +110,7 @@ function auto_arima(x, seas, steps_ahead)
 	return df_auto_arima
 end
 
-function struc_ss(x, seas, steps_ahead)
+function struc_ss_df(x, seas, steps_ahead)
 	## Logarithms
 	#x = Base.log.(x)
 	
@@ -110,7 +128,7 @@ function struc_ss(x, seas, steps_ahead)
 	return df_struc_ss
 end
 
-function ll(x, seas, steps_ahead)
+function ll_m(x, seas, steps_ahead)
 	## Logarithms
 	#x = Base.log.(x)
 	
@@ -126,7 +144,7 @@ function ll(x, seas, steps_ahead)
 	return df_ll
 end
 
-function ll_trend(x, seas, steps_ahead)
+function ll_trend_df(x, seas, steps_ahead)
 	## Logarithms
 	#x = Base.log.(x)
 	
@@ -143,7 +161,7 @@ function ll_trend(x, seas, steps_ahead)
 	return df_ll_trend
 end
 
-function exper_seas_naive(x, seas, steps_ahead)
+function exper_seas_naive_df(x, seas, steps_ahead)
 	## Logarithms
 	#x = Base.log.(x)
 	
@@ -167,97 +185,104 @@ function univariate_models(x, seas, steps_ahead)
 	#x = Base.log(Base.Complex(x))
 	
 	## SARIMA((0,1,1),(0,1,1))
-	model_sarima = StateSpaceModels.SARIMA(
-		x; 
-		order = (0, 1, 1), 
-		seasonal_order = (0, 1, 1, seas))
-	StateSpaceModels.fit!(
-		model_sarima; 
-		save_hyperparameter_distribution = false)
-	forec_sarima = StateSpaceModels.forecast(model_sarima, steps_ahead)
-	df_sarima = DataFrames.DataFrame(
-		Base.hcat(forec_sarima.expected_value...)', :auto)
-	DataFrames.rename!(df_sarima, [:sarima])
-
-	## Unobserved Components, Linear Trend, Seasonal
-	model_uc = StateSpaceModels.UnobservedComponents(
-		x; 
-		trend = "local linear trend", 
-		seasonal = "stochastic " * Base.string(seas))
-	StateSpaceModels.fit!(
-		model_uc; 
-		save_hyperparameter_distribution = false)
-	forec_uc = StateSpaceModels.forecast(model_uc, steps_ahead)
-	df_uc = DataFrames.DataFrame(Base.hcat(forec_uc.expected_value...)', :auto)
-	DataFrames.rename!(df_uc, [:uc])
-
-	## Exponential Smoothing
-	model_ets = StateSpaceModels.ExponentialSmoothing(
-		x; 
-		trend = true, 
-		seasonal = seas)
-	StateSpaceModels.fit!(
-		model_ets; 
-		save_hyperparameter_distribution = false)
-	forec_ets = StateSpaceModels.forecast(model_ets, steps_ahead)
-	df_ets = DataFrames.DataFrame(Base.hcat(forec_ets.expected_value...)', :auto)
-	DataFrames.rename!(df_ets, [:ets])
-
-	## Seasonal Naive
-	model_seasonal_naive = StateSpaceModels.SeasonalNaive(
-		x, 
-		seas)
-	StateSpaceModels.fit!(
-		model_seasonal_naive)
-	forec_seasonal_naive = StateSpaceModels.forecast(
-		model_seasonal_naive, steps_ahead)
-	df_seasonal_naive = DataFrames.DataFrame(
-		Base.hcat(forec_seasonal_naive.expected_value...)', :auto)
-	DataFrames.rename!(df_seasonal_naive, [:seasonal_naive])
-
-	## Automatic Exponential Smoothing
-	model_auto_ets = StateSpaceModels.auto_ets(
-		x; 
-		seasonal = seas)
-	StateSpaceModels.fit!(model_auto_ets)
-	forec_auto_ets = StateSpaceModels.forecast(model_auto_ets, steps_ahead)
-	df_auto_ets = DataFrames.DataFrame(
-		Base.hcat(forec_auto_ets.expected_value...)', :auto)
-	DataFrames.rename!(df_auto_ets, [:auto_ets])
+	# model_sarima = StateSpaceModels.SARIMA(
+	# 	x; 
+	# 	order = (0, 1, 1), 
+	# 	seasonal_order = (0, 1, 1, seas))
+	# StateSpaceModels.fit!(
+	# 	model_sarima; 
+	# 	save_hyperparameter_distribution = false)
+	# forec_sarima = StateSpaceModels.forecast(model_sarima, steps_ahead)
+	# df_sarima = DataFrames.DataFrame(
+	# 	Base.hcat(forec_sarima.expected_value...)', :auto)
+	# DataFrames.rename!(df_sarima, [:sarima])
+	df_sarima = sarima_df(x, seas, steps_ahead)
 
 	## Automatic ARIMA
-	model_auto_arima = StateSpaceModels.auto_arima(
-		x; 
-		seasonal = seas)
-	StateSpaceModels.fit!(
-		model_auto_arima; 
-		save_hyperparameter_distribution = false)
-	forec_auto_arima = StateSpaceModels.forecast(model_auto_arima, steps_ahead)
-	df_auto_arima = DataFrames.DataFrame(
-		Base.hcat(forec_auto_arima.expected_value...)', :auto)
-	DataFrames.rename!(df_auto_arima, [:auto_arima])
+	# model_auto_arima = StateSpaceModels.auto_arima(
+	# 	x; 
+	# 	seasonal = seas)
+	# StateSpaceModels.fit!(
+	# 	model_auto_arima; 
+	# 	save_hyperparameter_distribution = false)
+	# forec_auto_arima = StateSpaceModels.forecast(model_auto_arima, steps_ahead)
+	# df_auto_arima = DataFrames.DataFrame(
+	# 	Base.hcat(forec_auto_arima.expected_value...)', :auto)
+	# DataFrames.rename!(df_auto_arima, [:auto_arima])
+	df_auto_arima = auto_arima_df(x, seas, steps_ahead)
 
-	## Basic Structural State-Space
-	model_struc_ss = StateSpaceModels.BasicStructural(
-		x,
-		seas)
-	StateSpaceModels.fit!(
-		model_struc_ss; 
-		save_hyperparameter_distribution = false)
-	forec_struc_ss = StateSpaceModels.forecast(model_struc_ss, steps_ahead)
-	df_struc_ss = DataFrames.DataFrame(
-		Base.hcat(forec_struc_ss.expected_value...)', :auto)
-	DataFrames.rename!(df_struc_ss, [:struc_ss])
+	## Unobserved Components, Linear Trend, Seasonal
+	# model_uc = StateSpaceModels.UnobservedComponents(
+	# 	x; 
+	# 	trend = "local linear trend", 
+	# 	seasonal = "stochastic " * Base.string(seas))
+	# StateSpaceModels.fit!(
+	# 	model_uc; 
+	# 	save_hyperparameter_distribution = false)
+	# forec_uc = StateSpaceModels.forecast(model_uc, steps_ahead)
+	# df_uc = DataFrames.DataFrame(Base.hcat(forec_uc.expected_value...)', :auto)
+	# DataFrames.rename!(df_uc, [:uc])
+	df_uc = uc_df(x, seas, steps_ahead)
+
+	## Exponential Smoothing
+	# model_ets = StateSpaceModels.ExponentialSmoothing(
+	# 	x; 
+	# 	trend = true, 
+	# 	seasonal = seas)
+	# StateSpaceModels.fit!(
+	# 	model_ets; 
+	# 	save_hyperparameter_distribution = false)
+	# forec_ets = StateSpaceModels.forecast(model_ets, steps_ahead)
+	# df_ets = DataFrames.DataFrame(Base.hcat(forec_ets.expected_value...)', :auto)
+	# DataFrames.rename!(df_ets, [:ets])
+	df_ets = ets_df(x, seas, steps_ahead)
+
+	## Automatic Exponential Smoothing
+	# model_auto_ets = StateSpaceModels.auto_ets(
+	# 	x; 
+	# 	seasonal = seas)
+	# StateSpaceModels.fit!(model_auto_ets)
+	# forec_auto_ets = StateSpaceModels.forecast(model_auto_ets, steps_ahead)
+	# df_auto_ets = DataFrames.DataFrame(
+	# 	Base.hcat(forec_auto_ets.expected_value...)', :auto)
+	# DataFrames.rename!(df_auto_ets, [:auto_ets])
+	df_auto_ets = auto_ets_df(x, seas, steps_ahead)
+
+	## Local Linear Trend
+	# model_ll_trend = StateSpaceModels.LocalLinearTrend(
+	# 	x)
+	# StateSpaceModels.fit!(
+	# 	model_ll_trend; 
+	# 	save_hyperparameter_distribution = false)
+	# forec_ll_trend = StateSpaceModels.forecast(model_ll_trend, steps_ahead)
+	# df_ll_trend = DataFrames.DataFrame(
+	# 	Base.hcat(forec_ll_trend.expected_value...)', :auto)
+	# DataFrames.rename!(df_ll_trend, [:ll_trend])
+	df_ll_trend = ll_trend_df(x, seas, steps_ahead)
+
+	## Seasonal Naive
+	# model_seasonal_naive = StateSpaceModels.SeasonalNaive(
+	# 	x, 
+	# 	seas)
+	# StateSpaceModels.fit!(
+	# 	model_seasonal_naive)
+	# forec_seasonal_naive = StateSpaceModels.forecast(
+	# 	model_seasonal_naive, steps_ahead)
+	# df_seasonal_naive = DataFrames.DataFrame(
+	# 	Base.hcat(forec_seasonal_naive.expected_value...)', :auto)
+	# DataFrames.rename!(df_seasonal_naive, [:seasonal_naive])
+	# model_seasonal_naive = seas_naive(x, seas, steps_ahead)
 
 	## Local Level
-	model_ll = StateSpaceModels.LocalLevel(
-		x)
-	StateSpaceModels.fit!(
-		model_ll; 
-		save_hyperparameter_distribution = false)
-	forec_ll = StateSpaceModels.forecast(model_ll, steps_ahead)
-	df_ll = DataFrames.DataFrame(Base.hcat(forec_ll.expected_value...)', :auto)
-	DataFrames.rename!(df_ll, [:ll])
+	# model_ll = StateSpaceModels.LocalLevel(
+	# 	x)
+	# StateSpaceModels.fit!(
+	# 	model_ll; 
+	# 	save_hyperparameter_distribution = false)
+	# forec_ll = StateSpaceModels.forecast(model_ll, steps_ahead)
+	# df_ll = DataFrames.DataFrame(Base.hcat(forec_ll.expected_value...)', :auto)
+	# DataFrames.rename!(df_ll, [:ll])
+	# model_ll = ll(x, seas, steps_ahead)
 
 	#=
 	## Local Level Cycle
@@ -272,17 +297,18 @@ function univariate_models(x, seas, steps_ahead)
 	DataFrames.rename!(df_ll_cycle, [:ll_cycle])
 	=#
 
-	## Local Linear Trend
-	model_ll_trend = StateSpaceModels.LocalLinearTrend(
-		x)
-	StateSpaceModels.fit!(
-		model_ll_trend; 
-		save_hyperparameter_distribution = false)
-	forec_ll_trend = StateSpaceModels.forecast(model_ll_trend, steps_ahead)
-	df_ll_trend = DataFrames.DataFrame(
-		Base.hcat(forec_ll_trend.expected_value...)', :auto)
-	DataFrames.rename!(df_ll_trend, [:ll_trend])
-
+	## Basic Structural State-Space
+	# model_struc_ss = StateSpaceModels.BasicStructural(
+	# 	x,
+	# 	seas)
+	# StateSpaceModels.fit!(
+	# 	model_struc_ss; 
+	# 	save_hyperparameter_distribution = false)
+	# forec_struc_ss = StateSpaceModels.forecast(model_struc_ss, steps_ahead)
+	# df_struc_ss = DataFrames.DataFrame(
+	# 	Base.hcat(forec_struc_ss.expected_value...)', :auto)
+	# DataFrames.rename!(df_struc_ss, [:struc_ss])
+	df_struc_ss = struc_ss_df(x, seas, steps_ahead)
 	#=
 	## Naive
 	model_naive = StateSpaceModels.Naive(x)
@@ -293,6 +319,7 @@ function univariate_models(x, seas, steps_ahead)
 	DataFrames.rename!(df_naive, [:naive])
 	=#
 
+	#=
 	# Seasonal Naive model
 	model_exper_seas_naive = StateSpaceModels.ExperimentalSeasonalNaive(
 		x, 
@@ -304,6 +331,7 @@ function univariate_models(x, seas, steps_ahead)
 	df_exper_seas_naive = DataFrames.DataFrame(
 		Base.hcat(forec_exper_seas_naive.expected_value...)', :auto)
 	DataFrames.rename!(df_exper_seas_naive, [:exper_seas_naive])
+	=#
 
 	## Results to DataFrame
 	results = Base.hcat(
@@ -314,8 +342,8 @@ function univariate_models(x, seas, steps_ahead)
 		df_auto_ets, 
 		#df_ll_cycle,
 		df_ll_trend, 
-		# df_exper_seas_naive,
-		 df_struc_ss#, 
+		#df_exper_seas_naive,
+		df_struc_ss#, 
 		#df_ll, df_ll_cycle,
 		#df_seasonal_naive, df_naive 
 	)
