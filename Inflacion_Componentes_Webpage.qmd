@@ -229,22 +229,6 @@ end
 df_for
 ```
 
-
-```{julia}
-airp = CSV.File(StateSpaceModels.AIR_PASSENGERS) |> DataFrame
-log_air_passengers = log.(airp.passengers)
-steps_ahead = 30
-model = auto_ets(log_air_passengers; seasonal = 12)
-StateSpaceModels.fit!(
-		model; 
-		save_hyperparameter_distribution=false)
-forec_auto_ets = StateSpaceModels.forecast(model, steps_ahead)
-df_auto_ets = DataFrames.DataFrame(
-		Base.hcat(forec_auto_ets.expected_value...)', :auto)
-DataFrames.rename!(df_auto_ets, [:auto_ets])
-```
-
-
 ```{julia}
 df_cpi = DataFrames.stack(df_cpi_grupos,2:size(df_cpi_grupos)[2])
 df_cpi = @chain df_cpi begin
